@@ -322,27 +322,20 @@ function magician(enable, tabId) {
 		}
 		
 		if (settings.showIcon == 'true') {
-			const iconType = settings.iconType || 'coffee';
-			let iconPath;
-			
+			let defaultIcon;
 			if (enable == 'true') {
-				iconPath = `img/addressicon/${iconType}.png`;
+				defaultIcon = chrome.runtime.getURL("img/addressicon/coffee-disabled.png");
 			} else {
-				iconPath = `img/addressicon/${iconType}.png`;
+				defaultIcon = chrome.runtime.getURL("img/addressicon/coffee.png");
 			}
 			
-			chrome.action.setIcon({ path: iconPath, tabId: tabId }, () => {
-				if (chrome.runtime.lastError) {
-					console.warn(`Icon not found: ${iconPath}, using default icon`);
-					const defaultIcon = chrome.runtime.getURL("img/icon16.png");
-					chrome.action.setIcon({ path: defaultIcon, tabId: tabId }, () => {
-						if (chrome.runtime.lastError) {
-							console.error('No valid icon found');
-						}
-					});
-				}
+			chrome.action.setIcon({ path: defaultIcon, tabId: tabId }, () => {
+				chrome.action.setIcon({ path: defaultIcon, tabId: tabId }, () => {
+					if (chrome.runtime.lastError) {
+						console.error('No valid icon found');
+					}
+				});
 			});
-
 			
 			chrome.action.setTitle({title: settings.iconTitle || 'Decreased Productivity', tabId: tabId});
 		}
@@ -362,26 +355,21 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 		const dpcloakindex = cloakedTabs.indexOf(dpTabId);
 		const enableResult = await enabled(tab, dpcloakindex);
 		
-		const settings = await chrome.storage.local.get(['showIcon', 'iconType', 'iconTitle']);
+		// const settings = await chrome.storage.local.get(['showIcon', 'iconType', 'iconTitle']);
 		
-		if (settings.showIcon == "true") {
-			const iconType = settings.iconType || 'coffee';
-			const iconPath = `img/addressicon/${iconType}.png`;
+		// if (settings.showIcon == "true") {
 			
-			chrome.action.setIcon({ path: iconPath, tabId: tabId }, () => {
-				if (chrome.runtime.lastError) {
-					console.warn(`Icon not found: ${iconPath}, using default icon`);
-					const defaultIcon = chrome.runtime.getURL("img/icon16.png");
-					chrome.action.setIcon({ path: defaultIcon, tabId: tabId }, () => {
-						if (chrome.runtime.lastError) {
-							console.error('No valid icon found');
-						}
-					});
-				}
-			});
+		// 	const defaultIcon = chrome.runtime.getURL("img/addressicon/coffee-disabled.png");
+		// 	chrome.action.setIcon({ path: defaultIcon, tabId: tabId }, () => {
+		// 		chrome.action.setIcon({ path: defaultIcon, tabId: tabId }, () => {
+		// 			if (chrome.runtime.lastError) {
+		// 				console.error('No valid icon found');
+		// 			}
+		// 		});
+		// 	});
 			
-			chrome.action.setTitle({title: settings.iconTitle || 'Decreased Productivity', tabId: tabId});
-		}
+		// 	chrome.action.setTitle({title: settings.iconTitle || 'Decreased Productivity', tabId: tabId});
+		// }
 		
 		if (checkChrome(tab.url)) return;
 		
@@ -489,8 +477,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Action click handler
-chrome.action.onClicked.addListener((tab) => {
-	// Handle tab cloaking logic here
+chrome.action.onClicked.addListener(async (tab) => {
+    const result = await chrome.storage.local.get(['enable']);
+    const current = result.enable || 'true';
+    const newState = current === 'true' ? 'false' : 'true';
+    await chrome.storage.local.set({ enable: newState });
+
+    magician(newState, tab.id);
 });
 
 // Initialize
